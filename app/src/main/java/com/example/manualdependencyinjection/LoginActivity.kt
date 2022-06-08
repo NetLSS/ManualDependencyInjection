@@ -1,5 +1,6 @@
 package com.example.manualdependencyinjection
 
+import android.app.Activity
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 
@@ -67,3 +68,66 @@ class UserRemoteDataSource(
 class LoginRetrofitService {
 
 }
+
+// App container 사용
+// 전체앱에서 공유되는 객체의 컨테이너
+class AppContainer {
+
+    private val retrofit = RetrofitBuilder()
+        .baseUrl("https://example.com")
+        .build()
+        .create(LoginRetrofitService::class.java)
+
+    private val remoteDataSource = UserRemoteDataSource(retrofit)
+    private val localDataSource = UserLocalDataSource()
+
+    // 공개용 (이걸 얻기위해 컨테이너를 사용하게됨)
+    val userRepository = UserRepository(localDataSource, remoteDataSource)
+
+    val loginViewModelFactory = LoginViewModelFactory(userRepository)
+}
+
+class LoginActivity2 : Activity() {
+    private lateinit var loginViewModel: LoginViewModel
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // 컨테이너를 application context 에서 가져오고, userRepository 를 가져온다.
+        val appContainer = (application as MyApplication).appContainer
+        loginViewModel = LoginViewModel(appContainer.userRepository)
+    }
+}
+
+/*
+LoginViewModel 이 여러곳에서 필요한 경우에. 팩토리를 만드는게 의미있을 수 있다.
+ */
+
+// 팩토리는 T 타입을 반환하는 생성함수 포함
+interface Factory<T>{
+    fun create(): T
+}
+
+class LoginViewModelFactory(private val userRepository: UserRepository) : Factory<LoginViewModel> {
+    override fun create(): LoginViewModel {
+        return LoginViewModel(userRepository)
+    }
+}
+
+
+class LoginActivity3 : Activity() {
+    private lateinit var loginViewModel: LoginViewModel
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // 컨테이너를 application context 에서 가져오고, userRepository 를 가져온다.
+        val appContainer = (application as MyApplication).appContainer
+        loginViewModel = appContainer.loginViewModelFactory.create()
+    }
+}
+/*
+but, 위 코드의 단점
+- AppContainer 를 직접 관ㄹ리해야하고, 모든 종속성에 대한 컨테이너 인스턴스를 직접 만들어야 한다.
+- 여전히 많은 보일러플레이트, 인스턴스를 재사용하고 싶은 경우 직접 팩토리나 매개변수를 만들어야 한다.
+ */
