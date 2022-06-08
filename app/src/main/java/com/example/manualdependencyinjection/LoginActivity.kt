@@ -85,6 +85,9 @@ class AppContainer {
     val userRepository = UserRepository(localDataSource, remoteDataSource)
 
     val loginViewModelFactory = LoginViewModelFactory(userRepository)
+
+    // 로그인 상황이 아니면 null 이어야 함
+    var loginContainer: LoginContainer? = null
 }
 
 class LoginActivity2 : Activity() {
@@ -131,3 +134,38 @@ but, 위 코드의 단점
 - AppContainer 를 직접 관ㄹ리해야하고, 모든 종속성에 대한 컨테이너 인스턴스를 직접 만들어야 한다.
 - 여전히 많은 보일러플레이트, 인스턴스를 재사용하고 싶은 경우 직접 팩토리나 매개변수를 만들어야 한다.
  */
+
+class LoginContainer(val userRepository: UserRepository) {
+
+    val loginData = LoginUserData() // 로그인 데이터... 샘플
+
+    val loginViewModelFactory = LoginViewModelFactory(userRepository)
+}
+
+class LoginUserData {
+
+}
+
+
+class LoginActivity4 : Activity() {
+    private lateinit var loginViewModel: LoginViewModel
+    private lateinit var loginUserData: LoginUserData
+    private lateinit var appContainer: AppContainer
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        appContainer = (application as MyApplication).appContainer
+
+        // 로그인 플로우 시작 (loginContainer 를 채워준다)
+        appContainer.loginContainer = LoginContainer(appContainer.userRepository)
+
+        loginViewModel = appContainer.loginContainer!!.loginViewModelFactory.create()
+        loginUserData = appContainer.loginContainer!!.loginData
+    }
+
+    override fun onDestroy() {
+        // 로그인 플로우 종료 (컨테이너 제거)
+        appContainer.loginContainer = null
+        super.onDestroy()
+    }
+}
