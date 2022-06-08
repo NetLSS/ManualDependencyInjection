@@ -12,6 +12,12 @@ import android.os.Bundle
         - Retrofit
  */
 
+/*
+단점
+- 수많은 보일러플레이트 코드가 필요하다
+- 의존성은 순서대로 선언해야 한다
+- 재사용시 싱글톤을 사용하게 되는데, 이러면 테스트에서도 같은 객체를 공유해야 한다.
+ */
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var loginViewModel: LoginViewModel
